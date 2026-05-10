@@ -1,0 +1,277 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.julius.pdfscanner"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+9        android:targetSdkVersion="35" />
+10
+11    <uses-permission android:name="android.permission.CAMERA" />
+11-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:4:5-65
+11-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:4:22-62
+12
+13    <uses-feature
+13-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:5:5-84
+14        android:name="android.hardware.camera"
+14-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:5:19-57
+15        android:required="true" />
+15-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:5:58-81
+16
+17    <permission
+17-->[androidx.core:core:1.13.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e256aa8711081dd97a202bf19d3b518c\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+18        android:name="com.julius.pdfscanner.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+18-->[androidx.core:core:1.13.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e256aa8711081dd97a202bf19d3b518c\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+19        android:protectionLevel="signature" />
+19-->[androidx.core:core:1.13.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e256aa8711081dd97a202bf19d3b518c\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+20
+21    <uses-permission android:name="com.julius.pdfscanner.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" /> <!-- Although the *SdkVersion is captured in gradle build files, this is required for non gradle builds -->
+21-->[androidx.core:core:1.13.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e256aa8711081dd97a202bf19d3b518c\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+21-->[androidx.core:core:1.13.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e256aa8711081dd97a202bf19d3b518c\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+22    <!-- <uses-sdk android:minSdkVersion="14"/> -->
+23    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+23-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4bcad64c6d0725ff7b6769248e3343ce\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:25:5-79
+23-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4bcad64c6d0725ff7b6769248e3343ce\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:25:22-76
+24    <uses-permission android:name="android.permission.INTERNET" />
+24-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4bcad64c6d0725ff7b6769248e3343ce\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:26:5-67
+24-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4bcad64c6d0725ff7b6769248e3343ce\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:26:22-64
+25
+26    <application
+26-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:7:5-35:19
+27        android:allowBackup="true"
+27-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:8:9-35
+28        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+28-->[androidx.core:core:1.13.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e256aa8711081dd97a202bf19d3b518c\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+29        android:debuggable="true"
+30        android:extractNativeLibs="false"
+31        android:icon="@mipmap/ic_launcher"
+31-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:9:9-43
+32        android:label="@string/app_name"
+32-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:10:9-41
+33        android:roundIcon="@mipmap/ic_launcher_round"
+33-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:11:9-54
+34        android:supportsRtl="true"
+34-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:12:9-35
+35        android:testOnly="true"
+36        android:theme="@style/Theme.PdfScanner" >
+36-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:13:9-48
+37        <activity
+37-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:15:9-23:20
+38            android:name="com.julius.pdfscanner.MainActivity"
+38-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:16:13-41
+39            android:exported="true"
+39-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:17:13-36
+40            android:windowSoftInputMode="adjustResize" >
+40-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:18:13-55
+41            <intent-filter>
+41-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:19:13-22:29
+42                <action android:name="android.intent.action.MAIN" />
+42-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:20:17-69
+42-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:20:25-66
+43
+44                <category android:name="android.intent.category.LAUNCHER" />
+44-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:21:17-77
+44-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:21:27-74
+45            </intent-filter>
+46        </activity>
+47
+48        <provider
+49            android:name="androidx.core.content.FileProvider"
+49-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:26:13-62
+50            android:authorities="com.julius.pdfscanner.fileprovider"
+50-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:27:13-64
+51            android:exported="false"
+51-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:28:13-37
+52            android:grantUriPermissions="true" >
+52-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:29:13-47
+53            <meta-data
+53-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:30:13-32:54
+54                android:name="android.support.FILE_PROVIDER_PATHS"
+54-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:31:17-67
+55                android:resource="@xml/file_paths" />
+55-->C:\Users\juliu\Documents\pdf-app\app\src\main\AndroidManifest.xml:32:17-51
+56        </provider>
+57
+58        <!--
+59        This activity is an invisible delegate activity to start scanner activity
+60        and receive result, so it's unnecessary to support screen orientation and
+61        we can avoid any side effect from activity recreation in any case.
+62        -->
+63        <activity
+63-->[com.google.android.gms:play-services-mlkit-document-scanner:16.0.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\d344edb44d50ef7ac39b56d74f1804cf\transformed\play-services-mlkit-document-scanner-16.0.0\AndroidManifest.xml:15:9-21:20
+64            android:name="com.google.mlkit.vision.documentscanner.internal.GmsDocumentScanningDelegateActivity"
+64-->[com.google.android.gms:play-services-mlkit-document-scanner:16.0.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\d344edb44d50ef7ac39b56d74f1804cf\transformed\play-services-mlkit-document-scanner-16.0.0\AndroidManifest.xml:16:13-112
+65            android:exported="false"
+65-->[com.google.android.gms:play-services-mlkit-document-scanner:16.0.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\d344edb44d50ef7ac39b56d74f1804cf\transformed\play-services-mlkit-document-scanner-16.0.0\AndroidManifest.xml:17:13-37
+66            android:screenOrientation="portrait"
+66-->[com.google.android.gms:play-services-mlkit-document-scanner:16.0.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\d344edb44d50ef7ac39b56d74f1804cf\transformed\play-services-mlkit-document-scanner-16.0.0\AndroidManifest.xml:18:13-49
+67            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" >
+67-->[com.google.android.gms:play-services-mlkit-document-scanner:16.0.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\d344edb44d50ef7ac39b56d74f1804cf\transformed\play-services-mlkit-document-scanner-16.0.0\AndroidManifest.xml:19:13-77
+68        </activity>
+69
+70        <service
+70-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\3e3b02411d41b69d19ae1d404c0799c0\transformed\play-services-mlkit-text-recognition-common-19.1.0\AndroidManifest.xml:9:9-15:19
+71            android:name="com.google.mlkit.common.internal.MlKitComponentDiscoveryService"
+71-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\3e3b02411d41b69d19ae1d404c0799c0\transformed\play-services-mlkit-text-recognition-common-19.1.0\AndroidManifest.xml:10:13-91
+72            android:directBootAware="true"
+72-->[com.google.mlkit:common:18.11.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\ba16f6cb7d77bd5eae1c4f750765bd45\transformed\common-18.11.0\AndroidManifest.xml:17:13-43
+73            android:exported="false" >
+73-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\3e3b02411d41b69d19ae1d404c0799c0\transformed\play-services-mlkit-text-recognition-common-19.1.0\AndroidManifest.xml:11:13-37
+74            <meta-data
+74-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\3e3b02411d41b69d19ae1d404c0799c0\transformed\play-services-mlkit-text-recognition-common-19.1.0\AndroidManifest.xml:12:13-14:85
+75                android:name="com.google.firebase.components:com.google.mlkit.vision.text.internal.TextRegistrar"
+75-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\3e3b02411d41b69d19ae1d404c0799c0\transformed\play-services-mlkit-text-recognition-common-19.1.0\AndroidManifest.xml:13:17-114
+76                android:value="com.google.firebase.components.ComponentRegistrar" />
+76-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\3e3b02411d41b69d19ae1d404c0799c0\transformed\play-services-mlkit-text-recognition-common-19.1.0\AndroidManifest.xml:14:17-82
+77            <meta-data
+77-->[com.google.mlkit:vision-common:17.3.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\f26bc79a57537db0ba1c23d15b30bf37\transformed\vision-common-17.3.0\AndroidManifest.xml:12:13-14:85
+78                android:name="com.google.firebase.components:com.google.mlkit.vision.common.internal.VisionCommonRegistrar"
+78-->[com.google.mlkit:vision-common:17.3.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\f26bc79a57537db0ba1c23d15b30bf37\transformed\vision-common-17.3.0\AndroidManifest.xml:13:17-124
+79                android:value="com.google.firebase.components.ComponentRegistrar" />
+79-->[com.google.mlkit:vision-common:17.3.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\f26bc79a57537db0ba1c23d15b30bf37\transformed\vision-common-17.3.0\AndroidManifest.xml:14:17-82
+80            <meta-data
+80-->[com.google.mlkit:common:18.11.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\ba16f6cb7d77bd5eae1c4f750765bd45\transformed\common-18.11.0\AndroidManifest.xml:20:13-22:85
+81                android:name="com.google.firebase.components:com.google.mlkit.common.internal.CommonComponentRegistrar"
+81-->[com.google.mlkit:common:18.11.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\ba16f6cb7d77bd5eae1c4f750765bd45\transformed\common-18.11.0\AndroidManifest.xml:21:17-120
+82                android:value="com.google.firebase.components.ComponentRegistrar" />
+82-->[com.google.mlkit:common:18.11.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\ba16f6cb7d77bd5eae1c4f750765bd45\transformed\common-18.11.0\AndroidManifest.xml:22:17-82
+83        </service>
+84
+85        <provider
+85-->[com.google.mlkit:common:18.11.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\ba16f6cb7d77bd5eae1c4f750765bd45\transformed\common-18.11.0\AndroidManifest.xml:9:9-13:38
+86            android:name="com.google.mlkit.common.internal.MlKitInitProvider"
+86-->[com.google.mlkit:common:18.11.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\ba16f6cb7d77bd5eae1c4f750765bd45\transformed\common-18.11.0\AndroidManifest.xml:10:13-78
+87            android:authorities="com.julius.pdfscanner.mlkitinitprovider"
+87-->[com.google.mlkit:common:18.11.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\ba16f6cb7d77bd5eae1c4f750765bd45\transformed\common-18.11.0\AndroidManifest.xml:11:13-69
+88            android:exported="false"
+88-->[com.google.mlkit:common:18.11.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\ba16f6cb7d77bd5eae1c4f750765bd45\transformed\common-18.11.0\AndroidManifest.xml:12:13-37
+89            android:initOrder="99" />
+89-->[com.google.mlkit:common:18.11.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\ba16f6cb7d77bd5eae1c4f750765bd45\transformed\common-18.11.0\AndroidManifest.xml:13:13-35
+90
+91        <activity
+91-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\f9be669deb3dd7533ea4409f00ba8210\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:9-173
+92            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+92-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\f9be669deb3dd7533ea4409f00ba8210\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:19-85
+93            android:exported="false"
+93-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\f9be669deb3dd7533ea4409f00ba8210\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:146-170
+94            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+94-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\f9be669deb3dd7533ea4409f00ba8210\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:86-145
+95
+96        <meta-data
+96-->[com.google.android.gms:play-services-basement:18.4.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\5528ddd4ff0cbee067c5fc1b9547eb65\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:9-122
+97            android:name="com.google.android.gms.version"
+97-->[com.google.android.gms:play-services-basement:18.4.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\5528ddd4ff0cbee067c5fc1b9547eb65\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:20-65
+98            android:value="@integer/google_play_services_version" />
+98-->[com.google.android.gms:play-services-basement:18.4.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\5528ddd4ff0cbee067c5fc1b9547eb65\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:66-119
+99
+100        <provider
+100-->[androidx.emoji2:emoji2:1.3.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4e035b4f66bd1a70ab79625a67ce3cd2\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+101            android:name="androidx.startup.InitializationProvider"
+101-->[androidx.emoji2:emoji2:1.3.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4e035b4f66bd1a70ab79625a67ce3cd2\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+102            android:authorities="com.julius.pdfscanner.androidx-startup"
+102-->[androidx.emoji2:emoji2:1.3.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4e035b4f66bd1a70ab79625a67ce3cd2\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+103            android:exported="false" >
+103-->[androidx.emoji2:emoji2:1.3.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4e035b4f66bd1a70ab79625a67ce3cd2\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+104            <meta-data
+104-->[androidx.emoji2:emoji2:1.3.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4e035b4f66bd1a70ab79625a67ce3cd2\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+105                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+105-->[androidx.emoji2:emoji2:1.3.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4e035b4f66bd1a70ab79625a67ce3cd2\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+106                android:value="androidx.startup" />
+106-->[androidx.emoji2:emoji2:1.3.0] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4e035b4f66bd1a70ab79625a67ce3cd2\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+107            <meta-data
+107-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\juliu\.gradle\caches\9.0.0\transforms\db7c36ae7b0bac884c21fe3b046a0c81\transformed\lifecycle-process-2.8.4\AndroidManifest.xml:29:13-31:52
+108                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+108-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\juliu\.gradle\caches\9.0.0\transforms\db7c36ae7b0bac884c21fe3b046a0c81\transformed\lifecycle-process-2.8.4\AndroidManifest.xml:30:17-78
+109                android:value="androidx.startup" />
+109-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\juliu\.gradle\caches\9.0.0\transforms\db7c36ae7b0bac884c21fe3b046a0c81\transformed\lifecycle-process-2.8.4\AndroidManifest.xml:31:17-49
+110            <meta-data
+110-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+111                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+111-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+112                android:value="androidx.startup" />
+112-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+113        </provider>
+114
+115        <activity
+115-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\juliu\.gradle\caches\9.0.0\transforms\aed2386e8307177209d238ddf85667ca\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:23:9-25:39
+116            android:name="androidx.activity.ComponentActivity"
+116-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\juliu\.gradle\caches\9.0.0\transforms\aed2386e8307177209d238ddf85667ca\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:24:13-63
+117            android:exported="true" />
+117-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\juliu\.gradle\caches\9.0.0\transforms\aed2386e8307177209d238ddf85667ca\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:25:13-36
+118        <activity
+118-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\juliu\.gradle\caches\9.0.0\transforms\a0e2f796760b55c6299332c47e1655e5\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
+119            android:name="androidx.compose.ui.tooling.PreviewActivity"
+119-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\juliu\.gradle\caches\9.0.0\transforms\a0e2f796760b55c6299332c47e1655e5\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
+120            android:exported="true" />
+120-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\juliu\.gradle\caches\9.0.0\transforms\a0e2f796760b55c6299332c47e1655e5\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
+121
+122        <service
+122-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4bcad64c6d0725ff7b6769248e3343ce\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:29:9-35:19
+123            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+123-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4bcad64c6d0725ff7b6769248e3343ce\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:30:13-103
+124            android:exported="false" >
+124-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4bcad64c6d0725ff7b6769248e3343ce\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:31:13-37
+125            <meta-data
+125-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4bcad64c6d0725ff7b6769248e3343ce\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:32:13-34:39
+126                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+126-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4bcad64c6d0725ff7b6769248e3343ce\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:33:17-94
+127                android:value="cct" />
+127-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\juliu\.gradle\caches\9.0.0\transforms\4bcad64c6d0725ff7b6769248e3343ce\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:34:17-36
+128        </service>
+129        <service
+129-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\juliu\.gradle\caches\9.0.0\transforms\5d48921baa8e63a264c08b2f57bac593\transformed\transport-runtime-2.2.6\AndroidManifest.xml:26:9-30:19
+130            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
+130-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\juliu\.gradle\caches\9.0.0\transforms\5d48921baa8e63a264c08b2f57bac593\transformed\transport-runtime-2.2.6\AndroidManifest.xml:27:13-117
+131            android:exported="false"
+131-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\juliu\.gradle\caches\9.0.0\transforms\5d48921baa8e63a264c08b2f57bac593\transformed\transport-runtime-2.2.6\AndroidManifest.xml:28:13-37
+132            android:permission="android.permission.BIND_JOB_SERVICE" >
+132-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\juliu\.gradle\caches\9.0.0\transforms\5d48921baa8e63a264c08b2f57bac593\transformed\transport-runtime-2.2.6\AndroidManifest.xml:29:13-69
+133        </service>
+134
+135        <receiver
+135-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\juliu\.gradle\caches\9.0.0\transforms\5d48921baa8e63a264c08b2f57bac593\transformed\transport-runtime-2.2.6\AndroidManifest.xml:32:9-34:40
+136            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
+136-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\juliu\.gradle\caches\9.0.0\transforms\5d48921baa8e63a264c08b2f57bac593\transformed\transport-runtime-2.2.6\AndroidManifest.xml:33:13-132
+137            android:exported="false" />
+137-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\juliu\.gradle\caches\9.0.0\transforms\5d48921baa8e63a264c08b2f57bac593\transformed\transport-runtime-2.2.6\AndroidManifest.xml:34:13-37
+138        <receiver
+138-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+139            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+139-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+140            android:directBootAware="false"
+140-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+141            android:enabled="true"
+141-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+142            android:exported="true"
+142-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+143            android:permission="android.permission.DUMP" >
+143-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+144            <intent-filter>
+144-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+145                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+145-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+145-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+146            </intent-filter>
+147            <intent-filter>
+147-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+148                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+148-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+148-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+149            </intent-filter>
+150            <intent-filter>
+150-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+151                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+151-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+151-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+152            </intent-filter>
+153            <intent-filter>
+153-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+154                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+154-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+154-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\juliu\.gradle\caches\9.0.0\transforms\e4ba48fa51f654cb46e3b61d4006f100\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+155            </intent-filter>
+156        </receiver>
+157    </application>
+158
+159</manifest>
