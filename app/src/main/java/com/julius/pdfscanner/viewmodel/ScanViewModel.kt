@@ -4,7 +4,9 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.mlkit.vision.text.Text
 import com.julius.pdfscanner.data.DocColorFilter
+import com.julius.pdfscanner.data.PaperSize
 import com.julius.pdfscanner.data.ScanMode
 import com.julius.pdfscanner.processing.ContactExtractor
 import com.julius.pdfscanner.processing.ContactInfo
@@ -46,6 +48,18 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     private val _compressionQuality = MutableStateFlow(100)
     val compressionQuality: StateFlow<Int> = _compressionQuality.asStateFlow()
 
+    private val _paperSize = MutableStateFlow(PaperSize.AUTO)
+    val paperSize: StateFlow<PaperSize> = _paperSize.asStateFlow()
+
+    private val _ocrCache = MutableStateFlow<List<Pair<Uri, Text>>?>(null)
+    val ocrCache: StateFlow<List<Pair<Uri, Text>>?> = _ocrCache.asStateFlow()
+
+    private val _editedTexts = MutableStateFlow<Map<Int, String>>(emptyMap())
+    val editedTexts: StateFlow<Map<Int, String>> = _editedTexts.asStateFlow()
+
+    private val _isOcrLoading = MutableStateFlow(false)
+    val isOcrLoading: StateFlow<Boolean> = _isOcrLoading.asStateFlow()
+
     var extractedContact: ContactInfo? = null
         private set
 
@@ -58,13 +72,13 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setScanMode(mode: ScanMode) {
         _scanMode.value = mode
-        // Whiteboard mode auto-selects B&W filter
         if (mode == ScanMode.WHITEBOARD) _colorFilter.value = DocColorFilter.AUTO
         else _colorFilter.value = DocColorFilter.ORIGINAL
     }
 
     fun setColorFilter(filter: DocColorFilter) { _colorFilter.value = filter }
     fun setCompressionQuality(q: Int) { _compressionQuality.value = q }
+    fun setPaperSize(size: PaperSize) { _paperSize.value = size }
     fun isBusinessCardMode() = _scanMode.value == ScanMode.BUSINESS_CARD
 
     // ── pages ─────────────────────────────────────────────────────────────────
@@ -73,6 +87,8 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         _pageUris.value = uris
         _state.value = ProcessingState.Idle
         extractedContact = null
+        _ocrCache.value = null
+        _editedTexts.value = emptyMap()
     }
 
     fun reorderPages(uris: List<Uri>) { _pageUris.value = uris }
@@ -81,6 +97,36 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         _pageUris.value = emptyList()
         _state.value = ProcessingState.Idle
         extractedContact = null
+        _ocrCache.value = null
+        _editedTexts.value = emptyMap()
+    }
+
+    // ── OCR preview (for text editing) ────────────────────────────────────────
+
+    fun triggerOcrPreview() {
+        val uris = _pageUris.value
+        if (_ocrCache.value?.map { it.first } == uris) return
+        viewModelScope.launch {
+            _isOcrLoading.value = true
+            val ctx = getApplication<Application>()
+            val results = uris.map { uri -> uri to ocrProcessor.recognize(ctx, uri) }
+            _ocrCache.value = results
+            _isOcrLoading.value = false
+        }
+    }
+
+    fun updateEditedText(page: Int, text: String) {
+        _editedTexts.value = _editedTexts.value + (page to text)
+    }
+
+    fun getPageOcrText(index: Int): String =
+        _editedTexts.value[index]
+            ?: _ocrCache.value?.getOrNull(index)?.second?.text
+            ?: ""
+
+    fun getOcrTextsForExport(): List<String> {
+        val cached = _ocrCache.value ?: return emptyList()
+        return cached.indices.map { i -> _editedTexts.value[i] ?: cached[i].second.text }
     }
 
     // ── saved PDFs ────────────────────────────────────────────────────────────
@@ -114,25 +160,36 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         val context = getApplication<Application>()
         val mode = _scanMode.value
         val filter = _colorFilter.value
+        val edited = _editedTexts.value
+        val paperSz = _paperSize.value
 
         viewModelScope.launch {
             try {
-                val results = mutableListOf<Pair<Uri, com.google.mlkit.vision.text.Text>>()
-                val allOcrText = StringBuilder()
+                // Reuse cached OCR if pages haven't changed; otherwise run fresh
+                val cached = _ocrCache.value
+                val results: List<Pair<Uri, Text>>
 
-                uris.forEachIndexed { i, uri ->
-                    _state.value = ProcessingState.InProgress(
-                        "Running OCR on page ${i + 1} of ${uris.size}…",
-                        i.toFloat() / uris.size * 0.85f
-                    )
-                    val text = ocrProcessor.recognize(context, uri)
-                    results.add(uri to text)
-                    allOcrText.append(text.text).append("\n")
+                if (cached != null && cached.map { it.first } == uris) {
+                    results = cached
+                    _state.value = ProcessingState.InProgress("Preparing pages…", 0.5f)
+                } else {
+                    val mutable = mutableListOf<Pair<Uri, Text>>()
+                    uris.forEachIndexed { i, uri ->
+                        _state.value = ProcessingState.InProgress(
+                            "Running OCR on page ${i + 1} of ${uris.size}…",
+                            i.toFloat() / uris.size * 0.85f
+                        )
+                        mutable.add(uri to ocrProcessor.recognize(context, uri))
+                    }
+                    results = mutable
+                    _ocrCache.value = results
                 }
 
-                // Business card: extract contact before building PDF
                 if (mode == ScanMode.BUSINESS_CARD) {
-                    extractedContact = ContactExtractor.extract(allOcrText.toString())
+                    val allText = results.mapIndexed { i, (_, t) ->
+                        edited[i] ?: t.text
+                    }.joinToString("\n")
+                    extractedContact = ContactExtractor.extract(allText)
                 }
 
                 _state.value = ProcessingState.InProgress("Building PDF…", 0.93f)
@@ -149,7 +206,9 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                     output = outFile,
                     colorFilter = filter,
                     compressionQuality = _compressionQuality.value,
-                    scanMode = mode
+                    scanMode = mode,
+                    paperSize = paperSz,
+                    editedTexts = edited
                 )
                 refreshPdfs()
                 _state.value = ProcessingState.Done(outFile)
@@ -168,6 +227,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
             ScanMode.ID_CARD -> "ID"
             ScanMode.BUSINESS_CARD -> "Card"
             ScanMode.WHITEBOARD -> "Board"
+            ScanMode.BULK -> "Bulk"
         }
         return "$prefix – ${fmt.format(Date())}"
     }

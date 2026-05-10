@@ -1,5 +1,6 @@
 package com.julius.pdfscanner.ui.result
 
+import android.content.Context
 import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -14,15 +15,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import com.julius.pdfscanner.processing.ContactExtractor
+import com.julius.pdfscanner.processing.DocxExporter
 import com.julius.pdfscanner.processing.JpegExporter
+import com.julius.pdfscanner.processing.PaperlessUploader
 import com.julius.pdfscanner.processing.PdfProtector
+import com.julius.pdfscanner.processing.XlsxExporter
 import com.julius.pdfscanner.ui.home.RenameDialog
-import com.julius.pdfscanner.ui.home.sharePdf
 import com.julius.pdfscanner.ui.home.openPdf
+import com.julius.pdfscanner.ui.home.sharePdf
 import com.julius.pdfscanner.viewmodel.ProcessingState
 import com.julius.pdfscanner.viewmodel.ScanViewModel
 import kotlinx.coroutines.Dispatchers
@@ -48,13 +52,9 @@ fun ResultScreen(viewModel: ScanViewModel, onDone: () -> Unit) {
         if (viewModel.state.value == ProcessingState.Idle) viewModel.processAndSave()
     }
     LaunchedEffect(state) {
-        if (state is ProcessingState.Done) currentFile = (state as ProcessingState.Done).file
-    }
-
-    // After processing, check if business card mode → show contact dialog
-    LaunchedEffect(state) {
-        if (state is ProcessingState.Done && viewModel.isBusinessCardMode()) {
-            showContactDialog = true
+        if (state is ProcessingState.Done) {
+            currentFile = (state as ProcessingState.Done).file
+            if (viewModel.isBusinessCardMode()) showContactDialog = true
         }
     }
 
@@ -84,8 +84,40 @@ fun ResultScreen(viewModel: ScanViewModel, onDone: () -> Unit) {
                                 statusMsg = "Exported to Pictures/PdfScanner"
                             }
                         },
+                        onExportWord = {
+                            scope.launch {
+                                statusMsg = "Creating Word document…"
+                                val texts = viewModel.getOcrTextsForExport()
+                                val docx = withContext(Dispatchers.IO) { DocxExporter.export(context, s.file, texts) }
+                                statusMsg = "Word document ready"
+                                shareFile(context, docx, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                            }
+                        },
+                        onExportExcel = {
+                            scope.launch {
+                                statusMsg = "Creating spreadsheet…"
+                                val texts = viewModel.getOcrTextsForExport()
+                                val xlsx = withContext(Dispatchers.IO) { XlsxExporter.export(context, s.file, texts) }
+                                statusMsg = "Spreadsheet ready"
+                                shareFile(context, xlsx, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                            }
+                        },
                         onPasswordProtect = { showPasswordDialog = true },
                         onCompress = { showCompressDialog = true },
+                        onPaperless = {
+                            val prefs = context.getSharedPreferences("pdf_scanner_prefs", Context.MODE_PRIVATE)
+                            val url = prefs.getString("paperless_url", "") ?: ""
+                            val token = prefs.getString("paperless_token", "") ?: ""
+                            if (url.isBlank() || token.isBlank()) {
+                                statusMsg = "Configure Paperless-ngx in Settings first"
+                            } else {
+                                scope.launch {
+                                    statusMsg = "Uploading to Paperless…"
+                                    val result = PaperlessUploader.upload(s.file, url, token)
+                                    statusMsg = if (result.isSuccess) "Uploaded to Paperless ✓" else "Upload failed: ${result.exceptionOrNull()?.message}"
+                                }
+                            }
+                        },
                         onDone = onDone
                     )
                     is ProcessingState.Error -> ErrorView(message = s.message, onDone = onDone)
@@ -109,11 +141,11 @@ fun ResultScreen(viewModel: ScanViewModel, onDone: () -> Unit) {
                         val out = File(file.parent, "${file.nameWithoutExtension} (protected).pdf")
                         runCatching { PdfProtector.protect(file, out, password); out }
                     }
-                    if (result.isSuccess) {
+                    statusMsg = if (result.isSuccess) {
                         viewModel.refreshPdfs()
-                        statusMsg = "Protected PDF saved"
+                        "Protected PDF saved"
                     } else {
-                        statusMsg = if (result.exceptionOrNull() is UnsupportedOperationException)
+                        if (result.exceptionOrNull() is UnsupportedOperationException)
                             "Password protection not available in this build"
                         else "Encryption failed"
                     }
@@ -130,7 +162,6 @@ fun ResultScreen(viewModel: ScanViewModel, onDone: () -> Unit) {
                 scope.launch {
                     statusMsg = "Compressing…"
                     withContext(Dispatchers.IO) {
-                        // Re-build PDF at lower quality by re-rendering pages
                         val out = File(file.parent, "${file.nameWithoutExtension} (compressed).pdf")
                         android.graphics.pdf.PdfRenderer(
                             android.os.ParcelFileDescriptor.open(file, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
@@ -184,6 +215,15 @@ fun ResultScreen(viewModel: ScanViewModel, onDone: () -> Unit) {
     }
 }
 
+private fun shareFile(context: Context, file: File, mimeType: String) {
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+        type = mimeType
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }, "Share"))
+}
+
 // ── sub-composables ───────────────────────────────────────────────────────────
 
 @Composable
@@ -203,17 +243,28 @@ private fun DoneView(
     onShare: () -> Unit,
     onRename: () -> Unit,
     onExportJpeg: () -> Unit,
+    onExportWord: () -> Unit,
+    onExportExcel: () -> Unit,
     onPasswordProtect: () -> Unit,
     onCompress: () -> Unit,
+    onPaperless: () -> Unit,
     onDone: () -> Unit
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(32.dp)) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("pdf_scanner_prefs", Context.MODE_PRIVATE) }
+    val paperlessConfigured = prefs.getString("paperless_url", "")?.isNotBlank() == true
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.padding(32.dp)
+    ) {
         Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(80.dp), tint = MaterialTheme.colorScheme.primary)
         Text("Saved!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text(file.nameWithoutExtension, style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(0.6f), textAlign = TextAlign.Center)
 
-        statusMsg?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
+        statusMsg?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center) }
 
         Spacer(Modifier.height(4.dp))
 
@@ -223,13 +274,24 @@ private fun DoneView(
             Button(onClick = onOpen) { Icon(Icons.Default.OpenInNew, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Open") }
         }
 
-        // Secondary actions
-        Divider(modifier = Modifier.fillMaxWidth())
-        Text("More options", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(0.5f))
+        // Export options
+        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+        Text("Export", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(0.5f))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onExportJpeg) { Icon(Icons.Default.Image, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("JPEG") }
+            OutlinedButton(onClick = onExportWord) { Icon(Icons.Default.Description, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Word") }
+            OutlinedButton(onClick = onExportExcel) { Icon(Icons.Default.TableChart, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Excel") }
+        }
+
+        // Tools
+        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+        Text("Tools", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(0.5f))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onPasswordProtect) { Icon(Icons.Default.Lock, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Protect") }
             OutlinedButton(onClick = onCompress) { Icon(Icons.Default.Compress, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Compress") }
+            if (paperlessConfigured) {
+                OutlinedButton(onClick = onPaperless) { Icon(Icons.Default.CloudUpload, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Paperless") }
+            }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -261,11 +323,9 @@ private fun PasswordDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password") },
-                    singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
+                    singleLine = true, modifier = Modifier.fillMaxWidth(), visualTransformation = PasswordVisualTransformation())
                 OutlinedTextField(value = confirm, onValueChange = { confirm = it }, label = { Text("Confirm password") },
-                    singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    singleLine = true, modifier = Modifier.fillMaxWidth(), visualTransformation = PasswordVisualTransformation(),
                     isError = confirm.isNotEmpty() && confirm != password,
                     supportingText = { if (confirm.isNotEmpty() && confirm != password) Text("Passwords don't match") })
             }

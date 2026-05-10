@@ -49,7 +49,8 @@ import java.util.*
 fun HomeScreen(
     viewModel: ScanViewModel,
     onScanModeSelect: () -> Unit,
-    onScanComplete: () -> Unit
+    onScanComplete: () -> Unit,
+    onSettings: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val activity = context as Activity
@@ -144,6 +145,9 @@ fun HomeScreen(
                     actions = {
                         IconButton(onClick = { galleryLauncher.launch("image/*") }) {
                             Icon(Icons.Default.PhotoLibrary, contentDescription = "Import from gallery")
+                        }
+                        IconButton(onClick = onSettings) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings")
                         }
                     }
                 )
