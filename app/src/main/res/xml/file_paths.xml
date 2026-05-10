@@ -2,4 +2,5 @@
 <paths>
     <files-path name="pdfs" path="pdfs/" />
     <cache-path name="camera_temp" path="." />
+    <external-path name="external_files" path="." />
 </paths>

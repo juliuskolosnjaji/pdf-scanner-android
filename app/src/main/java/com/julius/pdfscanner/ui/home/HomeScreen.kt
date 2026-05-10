@@ -9,10 +9,10 @@ import android.os.ParcelFileDescriptor
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,24 +35,32 @@ import androidx.core.content.FileProvider
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
+import com.julius.pdfscanner.processing.PdfMerger
 import com.julius.pdfscanner.viewmodel.ScanViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     viewModel: ScanViewModel,
+    onScanModeSelect: () -> Unit,
     onScanComplete: () -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as Activity
     val savedPdfs by viewModel.savedPdfs.collectAsState()
+    val scope = rememberCoroutineScope()
+
     var errorMsg by remember { mutableStateOf<String?>(null) }
     var selectedFile by remember { mutableStateOf<File?>(null) }
+    var selectedForMerge by remember { mutableStateOf<Set<File>>(emptySet()) }
+    val isSelecting = selectedForMerge.isNotEmpty()
+    var isMerging by remember { mutableStateOf(false) }
 
     val scanner = remember {
         GmsDocumentScanning.getClient(
@@ -79,6 +87,16 @@ fun HomeScreen(
         }
     }
 
+    // Gallery import launcher
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            viewModel.setPages(uris)
+            onScanComplete()
+        }
+    }
+
     fun launchScanner() {
         scanner.getStartScanIntent(activity)
             .addOnSuccessListener { scannerLauncher.launch(IntentSenderRequest.Builder(it).build()) }
@@ -87,73 +105,127 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("PDF Scanner", fontWeight = FontWeight.SemiBold) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+            if (isSelecting) {
+                TopAppBar(
+                    title = { Text("${selectedForMerge.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { selectedForMerge = emptySet() }) {
+                            Icon(Icons.Default.Close, "Cancel")
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    isMerging = true
+                                    withContext(Dispatchers.IO) {
+                                        val outDir = File(context.filesDir, "pdfs").also { it.mkdirs() }
+                                        val fmt = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+                                        val out = File(outDir, "Merged – ${fmt.format(Date())}.pdf")
+                                        PdfMerger.merge(selectedForMerge.sortedBy { it.name }, out)
+                                    }
+                                    viewModel.refreshPdfs()
+                                    selectedForMerge = emptySet()
+                                    isMerging = false
+                                }
+                            },
+                            enabled = selectedForMerge.size >= 2 && !isMerging
+                        ) {
+                            Icon(Icons.Default.MergeType, "Merge")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
                 )
-            )
+            } else {
+                TopAppBar(
+                    title = { Text("PDF Scanner", fontWeight = FontWeight.SemiBold) },
+                    actions = {
+                        IconButton(onClick = { galleryLauncher.launch("image/*") }) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = "Import from gallery")
+                        }
+                    }
+                )
+            }
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { launchScanner() },
-                icon = { Icon(Icons.Default.DocumentScanner, contentDescription = null) },
-                text = { Text("Scan") }
-            )
+            AnimatedVisibility(!isSelecting) {
+                ExtendedFloatingActionButton(
+                    onClick = onScanModeSelect,
+                    icon = { Icon(Icons.Default.DocumentScanner, null) },
+                    text = { Text("Scan") }
+                )
+            }
         }
     ) { padding ->
         if (savedPdfs.isEmpty()) {
             EmptyState(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                onScan = { launchScanner() }
+                modifier = Modifier.fillMaxSize().padding(padding),
+                onScan = onScanModeSelect,
+                onImport = { galleryLauncher.launch("image/*") }
             )
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(savedPdfs, key = { it.absolutePath }) { file ->
+                    val isSelected = file in selectedForMerge
                     PdfCard(
                         file = file,
-                        modifier = Modifier.animateItemPlacement(),
-                        onClick = { selectedFile = file },
+                        isSelected = isSelected,
+                        isSelecting = isSelecting,
+                        onClick = {
+                            if (isSelecting) {
+                                selectedForMerge = if (isSelected)
+                                    selectedForMerge - file else selectedForMerge + file
+                            } else {
+                                selectedFile = file
+                            }
+                        },
+                        onLongClick = { selectedForMerge = selectedForMerge + file },
                         onOpen = { openPdf(context, file) },
                         onShare = { sharePdf(context, file) }
                     )
                 }
-                item { Spacer(Modifier.height(88.dp)) } // FAB clearance
+                item { Spacer(Modifier.height(88.dp)) }
+            }
+        }
+
+        if (isMerging) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Card(modifier = Modifier.padding(32.dp)) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text("Merging PDFs…")
+                    }
+                }
             }
         }
     }
 
-    // Bottom sheet
     selectedFile?.let { file ->
         PdfActionSheet(
             file = file,
             onDismiss = { selectedFile = null },
             onOpen = { openPdf(context, file); selectedFile = null },
             onShare = { sharePdf(context, file); selectedFile = null },
-            onRename = { newName ->
-                viewModel.renameFile(file, newName)
-                selectedFile = null
-            },
-            onDelete = {
-                viewModel.deleteFile(file)
-                selectedFile = null
-            }
+            onRename = { viewModel.renameFile(file, it); selectedFile = null },
+            onDelete = { viewModel.deleteFile(file); selectedFile = null }
         )
     }
 
     errorMsg?.let { msg ->
         AlertDialog(
             onDismissRequest = { errorMsg = null },
-            icon = { Icon(Icons.Default.Error, contentDescription = null) },
-            title = { Text("Scanner unavailable") },
+            icon = { Icon(Icons.Default.Error, null) },
+            title = { Text("Error") },
             text = { Text(msg) },
             confirmButton = { TextButton(onClick = { errorMsg = null }) { Text("OK") } }
         )
@@ -161,41 +233,43 @@ fun HomeScreen(
 }
 
 @Composable
-private fun EmptyState(modifier: Modifier = Modifier, onScan: () -> Unit) {
+private fun EmptyState(modifier: Modifier, onScan: () -> Unit, onImport: () -> Unit) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(32.dp)
         ) {
-            Icon(
-                Icons.Outlined.FolderOpen,
-                contentDescription = null,
-                modifier = Modifier.size(80.dp),
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-            )
+            Icon(Icons.Outlined.FolderOpen, null, modifier = Modifier.size(80.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
             Text("No scans yet", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-            Text(
-                "Scan a document to create a searchable PDF",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-            )
+            Text("Scan or import a document", style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(0.55f))
             Spacer(Modifier.height(4.dp))
-            FilledTonalButton(onClick = onScan) {
-                Icon(Icons.Default.DocumentScanner, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Scan your first document")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilledTonalButton(onClick = onImport) {
+                    Icon(Icons.Default.PhotoLibrary, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Import")
+                }
+                Button(onClick = onScan) {
+                    Icon(Icons.Default.DocumentScanner, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Scan")
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun PdfCard(
     file: File,
-    modifier: Modifier = Modifier,
+    isSelected: Boolean,
+    isSelecting: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     onOpen: () -> Unit,
     onShare: () -> Unit
 ) {
@@ -204,72 +278,50 @@ private fun PdfCard(
     val fmt = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
 
     Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected)
+                MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Thumbnail
-            Box(
-                modifier = Modifier
-                    .size(width = 56.dp, height = 72.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                if (thumbnail != null) {
-                    Image(
-                        bitmap = thumbnail.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(modifier = Modifier.size(56.dp, 72.dp).clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                if (isSelected) {
+                    Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp))
+                } else if (thumbnail != null) {
+                    Image(thumbnail.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                 } else {
-                    Icon(
-                        Icons.Default.PictureAsPdf,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                        modifier = Modifier.size(28.dp)
-                    )
+                    Icon(Icons.Default.PictureAsPdf, null, tint = MaterialTheme.colorScheme.primary.copy(0.5f),
+                        modifier = Modifier.size(28.dp))
                 }
             }
-
-            // Info
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    file.nameWithoutExtension,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    buildString {
-                        if (info.pageCount > 0) append("${info.pageCount} page${if (info.pageCount != 1) "s" else ""}  ·  ")
-                        append(info.sizeStr)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                )
-                Text(
-                    fmt.format(Date(file.lastModified())),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                )
+                Text(file.nameWithoutExtension, style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(buildString {
+                    if (info.pageCount > 0) append("${info.pageCount} page${if (info.pageCount != 1) "s" else ""}  ·  ")
+                    append(info.sizeStr)
+                }, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(0.55f))
+                Text(fmt.format(Date(file.lastModified())), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(0.4f))
             }
-
-            // Quick actions
-            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                IconButton(onClick = onOpen, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.OpenInNew, contentDescription = "Open", modifier = Modifier.size(18.dp))
-                }
-                IconButton(onClick = onShare, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Share, contentDescription = "Share", modifier = Modifier.size(18.dp))
+            if (!isSelecting) {
+                Column {
+                    IconButton(onClick = onOpen, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.OpenInNew, null, Modifier.size(18.dp))
+                    }
+                    IconButton(onClick = onShare, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Share, null, Modifier.size(18.dp))
+                    }
                 }
             }
         }
@@ -287,89 +339,58 @@ private fun PdfActionSheet(
     onDelete: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var showRenameDialog by remember { mutableStateOf(false) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showRename by remember { mutableStateOf(false) }
+    var showDelete by remember { mutableStateOf(false) }
     val info = rememberPdfInfo(file)
     val fmt = remember { SimpleDateFormat("MMM d, yyyy · HH:mm", Locale.getDefault()) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.padding(bottom = 32.dp)) {
-            // Header
-            Row(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+            Row(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Icon(Icons.Default.PictureAsPdf, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
                 Column {
-                    Text(file.nameWithoutExtension, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        buildString {
-                            if (info.pageCount > 0) append("${info.pageCount} pages  ·  ")
-                            append(info.sizeStr)
-                            append("  ·  ")
-                            append(fmt.format(Date(file.lastModified())))
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(0.55f)
-                    )
+                    Text(file.nameWithoutExtension, style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(buildString {
+                        if (info.pageCount > 0) append("${info.pageCount} pages  ·  ")
+                        append(info.sizeStr)
+                        append("  ·  ")
+                        append(fmt.format(Date(file.lastModified())))
+                    }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(0.55f))
                 }
             }
-
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-            ActionRow2(icon = Icons.Default.OpenInNew, label = "Open", onClick = onOpen)
-            ActionRow2(icon = Icons.Default.Share, label = "Share", onClick = onShare)
-            ActionRow2(icon = Icons.Default.Edit, label = "Rename", onClick = { showRenameDialog = true })
-            ActionRow2(
-                icon = Icons.Default.Delete,
-                label = "Delete",
-                onClick = { showDeleteConfirm = true },
-                tint = MaterialTheme.colorScheme.error
-            )
+            SheetAction(Icons.Default.OpenInNew, "Open", onClick = onOpen)
+            SheetAction(Icons.Default.Share, "Share", onClick = onShare)
+            SheetAction(Icons.Default.Edit, "Rename", onClick = { showRename = true })
+            SheetAction(Icons.Default.Delete, "Delete", onClick = { showDelete = true }, tint = MaterialTheme.colorScheme.error)
         }
     }
 
-    if (showRenameDialog) {
-        RenameDialog(
-            currentName = file.nameWithoutExtension,
-            onConfirm = { onRename(it); showRenameDialog = false },
-            onDismiss = { showRenameDialog = false }
-        )
-    }
-
-    if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            icon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Delete scan?") },
-            text = { Text("\"${file.nameWithoutExtension}\" will be permanently deleted.") },
-            confirmButton = {
-                TextButton(onClick = { onDelete(); showDeleteConfirm = false }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") } }
-        )
-    }
+    if (showRename) RenameDialog(file.nameWithoutExtension, onConfirm = { onRename(it); showRename = false }, onDismiss = { showRename = false })
+    if (showDelete) AlertDialog(
+        onDismissRequest = { showDelete = false },
+        icon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
+        title = { Text("Delete scan?") },
+        text = { Text("\"${file.nameWithoutExtension}\" will be permanently deleted.") },
+        confirmButton = { TextButton(onClick = { onDelete(); showDelete = false },
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Delete") } },
+        dismissButton = { TextButton(onClick = { showDelete = false }) { Text("Cancel") } }
+    )
 }
 
 @Composable
-private fun ActionRow2(
+private fun SheetAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     onClick: () -> Unit,
     tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface
 ) {
     Surface(onClick = onClick, color = androidx.compose.ui.graphics.Color.Transparent) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
             Text(label, style = MaterialTheme.typography.bodyLarge, color = tint)
         }
     }
@@ -380,28 +401,18 @@ fun RenameDialog(currentName: String, onConfirm: (String) -> Unit, onDismiss: ()
     var name by remember { mutableStateOf(currentName) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.Edit, contentDescription = null) },
+        icon = { Icon(Icons.Default.Edit, null) },
         title = { Text("Rename") },
         text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                label = { Text("Document name") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true,
+                label = { Text("Document name") }, modifier = Modifier.fillMaxWidth())
         },
-        confirmButton = {
-            TextButton(
-                onClick = { if (name.isNotBlank()) onConfirm(name) },
-                enabled = name.isNotBlank()
-            ) { Text("Rename") }
-        },
+        confirmButton = { TextButton(onClick = { if (name.isNotBlank()) onConfirm(name) }, enabled = name.isNotBlank()) { Text("Rename") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
 
-// PDF info helpers
+// ── PDF info helpers ──────────────────────────────────────────────────────────
 
 data class PdfFileInfo(val pageCount: Int, val sizeStr: String)
 
@@ -412,9 +423,7 @@ fun rememberPdfInfo(file: File): PdfFileInfo {
         withContext(Dispatchers.IO) {
             runCatching {
                 val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-                val renderer = PdfRenderer(fd)
-                info = PdfFileInfo(renderer.pageCount, formatSize(file.length()))
-                renderer.close()
+                PdfRenderer(fd).use { info = PdfFileInfo(it.pageCount, formatSize(file.length())) }
                 fd.close()
             }
         }
@@ -429,24 +438,22 @@ fun rememberPdfThumbnail(file: File): Bitmap? {
         withContext(Dispatchers.IO) {
             runCatching {
                 val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-                val renderer = PdfRenderer(fd)
-                val page = renderer.openPage(0)
-                val targetW = 180
-                val scale = targetW.toFloat() / page.width
-                val bmp = Bitmap.createBitmap(targetW, (page.height * scale).toInt(), Bitmap.Config.ARGB_8888)
-                android.graphics.Canvas(bmp).drawColor(android.graphics.Color.WHITE)
-                page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                page.close()
-                renderer.close()
-                fd.close()
-                bmp
+                PdfRenderer(fd).use { renderer ->
+                    val page = renderer.openPage(0)
+                    val scale = 180f / page.width
+                    val bmp = Bitmap.createBitmap((page.width * scale).toInt(), (page.height * scale).toInt(), Bitmap.Config.ARGB_8888)
+                    android.graphics.Canvas(bmp).drawColor(android.graphics.Color.WHITE)
+                    page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    page.close()
+                    bmp
+                }.also { fd.close() }
             }.onSuccess { bitmap = it }
         }
     }
     return bitmap
 }
 
-private fun formatSize(bytes: Long): String = when {
+fun formatSize(bytes: Long): String = when {
     bytes < 1024 -> "$bytes B"
     bytes < 1024 * 1024 -> "${bytes / 1024} KB"
     else -> String.format("%.1f MB", bytes / (1024.0 * 1024.0))
@@ -454,19 +461,10 @@ private fun formatSize(bytes: Long): String = when {
 
 fun openPdf(context: Context, file: File) {
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(uri, "application/pdf")
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    runCatching { context.startActivity(intent) }
+    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "application/pdf"); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }) }
 }
 
 fun sharePdf(context: Context, file: File) {
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "application/pdf"
-        putExtra(Intent.EXTRA_STREAM, uri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    context.startActivity(Intent.createChooser(intent, "Share PDF"))
+    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "application/pdf"; putExtra(Intent.EXTRA_STREAM, uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, "Share PDF"))
 }

@@ -1,2 +1,6 @@
 -keep class com.google.mlkit.** { *; }
 -keep class com.google.android.gms.** { *; }
+-keep class com.tom_roush.pdfbox.** { *; }
+-keep class org.apache.fontbox.** { *; }
+-dontwarn com.tom_roush.pdfbox.**
+-dontwarn org.apache.**
