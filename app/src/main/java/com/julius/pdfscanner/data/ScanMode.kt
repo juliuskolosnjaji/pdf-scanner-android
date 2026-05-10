@@ -1,6 +1,7 @@
 package com.julius.pdfscanner.data
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -11,7 +12,7 @@ enum class ScanMode(
     val pageLimit: Int = 20
 ) {
     DOCUMENT("Document", "Papers, forms, receipts", Icons.Default.Description),
-    BOOK("Book", "Open books — auto-splits two pages", Icons.Default.MenuBook),
+    BOOK("Book", "Open books — auto-splits two pages", Icons.AutoMirrored.Filled.MenuBook),
     ID_CARD("ID Card", "IDs and passports — scan front & back", Icons.Default.Badge, pageLimit = 2),
     BUSINESS_CARD("Business Card", "Extracts contact info to save", Icons.Default.ContactPage, pageLimit = 2),
     WHITEBOARD("Whiteboard", "Removes glare, boosts contrast", Icons.Default.Dashboard),

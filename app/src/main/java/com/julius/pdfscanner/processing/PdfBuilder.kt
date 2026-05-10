@@ -52,17 +52,30 @@ class PdfBuilder {
                 val info = PdfDocument.PageInfo.Builder(pageW, pageH, pageNum++).create()
                 val page = document.startPage(info)
 
+                // Scale bitmap to fit the page, preserving aspect ratio
+                val placed = if (paperSize != PaperSize.AUTO) {
+                    val s = minOf(pageW.toFloat() / compressed.width, pageH.toFloat() / compressed.height)
+                    Bitmap.createScaledBitmap(
+                        compressed,
+                        (compressed.width * s).toInt().coerceAtLeast(1),
+                        (compressed.height * s).toInt().coerceAtLeast(1),
+                        true
+                    )
+                } else compressed
+
                 page.canvas.drawColor(Color.WHITE)
-                val offsetX = (pageW - compressed.width) / 2f
-                val offsetY = (pageH - compressed.height) / 2f
-                page.canvas.drawBitmap(compressed, offsetX, offsetY, null)
+                val offsetX = (pageW - placed.width) / 2f
+                val offsetY = (pageH - placed.height) / 2f
+                page.canvas.drawBitmap(placed, offsetX, offsetY, null)
+                if (placed !== compressed) placed.recycle()
                 if (compressed !== filtered) compressed.recycle()
 
                 // Text overlay: prefer user-edited text, fall back to ML Kit bounding boxes
                 val editedText = if (scanMode != ScanMode.BOOK) editedTexts[sourceIndex] else null
                 when {
                     editedText != null -> drawPlainOverlay(page.canvas, editedText)
-                    text != null -> drawBoundingBoxOverlay(page.canvas, text, offsetX, offsetY)
+                    text != null -> drawBoundingBoxOverlay(page.canvas, text, offsetX, offsetY,
+                        if (paperSize != PaperSize.AUTO) placed.width.toFloat() / (compressed.width.takeIf { it > 0 } ?: 1) else 1f)
                 }
 
                 document.finishPage(page)
@@ -73,11 +86,9 @@ class PdfBuilder {
         document.close()
     }
 
-    private fun pageDimensions(paperSize: PaperSize, srcW: Int, srcH: Int): Pair<Int, Int> {
-        if (paperSize == PaperSize.AUTO) return srcW to srcH
-        val scale = minOf(paperSize.widthPt.toFloat() / srcW, paperSize.heightPt.toFloat() / srcH)
-        return paperSize.widthPt to paperSize.heightPt
-    }
+    private fun pageDimensions(paperSize: PaperSize, srcW: Int, srcH: Int): Pair<Int, Int> =
+        if (paperSize == PaperSize.AUTO) srcW to srcH
+        else paperSize.widthPt to paperSize.heightPt
 
     private fun drawPlainOverlay(canvas: android.graphics.Canvas, text: String) {
         val paint = Paint().apply { color = Color.TRANSPARENT; alpha = 0; textSize = 10f; isAntiAlias = true }
@@ -86,13 +97,13 @@ class PdfBuilder {
         }
     }
 
-    private fun drawBoundingBoxOverlay(canvas: android.graphics.Canvas, text: Text, offsetX: Float, offsetY: Float) {
+    private fun drawBoundingBoxOverlay(canvas: android.graphics.Canvas, text: Text, offsetX: Float, offsetY: Float, scale: Float = 1f) {
         val paint = Paint().apply { color = Color.TRANSPARENT; alpha = 0; isAntiAlias = true }
         text.textBlocks.forEach { block ->
             block.lines.forEach { line ->
                 line.boundingBox?.let { box ->
-                    paint.textSize = box.height().toFloat().coerceAtLeast(8f)
-                    canvas.drawText(line.text, box.left + offsetX, box.bottom + offsetY, paint)
+                    paint.textSize = (box.height() * scale).coerceAtLeast(8f)
+                    canvas.drawText(line.text, box.left * scale + offsetX, box.bottom * scale + offsetY, paint)
                 }
             }
         }

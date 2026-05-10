@@ -1,13 +1,11 @@
 package com.julius.pdfscanner.ui.home
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
@@ -18,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material3.*
@@ -32,9 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
-import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
-import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.julius.pdfscanner.processing.PdfMerger
 import com.julius.pdfscanner.viewmodel.ScanViewModel
 import kotlinx.coroutines.Dispatchers
@@ -53,42 +49,14 @@ fun HomeScreen(
     onSettings: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val activity = context as Activity
     val savedPdfs by viewModel.savedPdfs.collectAsState()
     val scope = rememberCoroutineScope()
 
-    var errorMsg by remember { mutableStateOf<String?>(null) }
     var selectedFile by remember { mutableStateOf<File?>(null) }
     var selectedForMerge by remember { mutableStateOf<Set<File>>(emptySet()) }
     val isSelecting = selectedForMerge.isNotEmpty()
     var isMerging by remember { mutableStateOf(false) }
 
-    val scanner = remember {
-        GmsDocumentScanning.getClient(
-            GmsDocumentScannerOptions.Builder()
-                .setGalleryImportAllowed(true)
-                .setPageLimit(20)
-                .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
-                .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
-                .build()
-        )
-    }
-
-    val scannerLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val uris = GmsDocumentScanningResult
-                .fromActivityResultIntent(result.data)
-                ?.pages?.map { it.imageUri } ?: emptyList()
-            if (uris.isNotEmpty()) {
-                viewModel.setPages(uris)
-                onScanComplete()
-            }
-        }
-    }
-
-    // Gallery import launcher
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
     ) { uris ->
@@ -98,12 +66,6 @@ fun HomeScreen(
         }
     }
 
-    fun launchScanner() {
-        scanner.getStartScanIntent(activity)
-            .addOnSuccessListener { scannerLauncher.launch(IntentSenderRequest.Builder(it).build()) }
-            .addOnFailureListener { errorMsg = it.message ?: "Scanner unavailable" }
-    }
-
     Scaffold(
         topBar = {
             if (isSelecting) {
@@ -111,11 +73,11 @@ fun HomeScreen(
                     title = { Text("${selectedForMerge.size} selected") },
                     navigationIcon = {
                         IconButton(onClick = { selectedForMerge = emptySet() }) {
-                            Icon(Icons.Default.Close, "Cancel")
+                            Icon(Icons.Default.Close, "Cancel selection")
                         }
                     },
                     actions = {
-                        IconButton(
+                        TextButton(
                             onClick = {
                                 scope.launch {
                                     isMerging = true
@@ -132,7 +94,9 @@ fun HomeScreen(
                             },
                             enabled = selectedForMerge.size >= 2 && !isMerging
                         ) {
-                            Icon(Icons.Default.MergeType, "Merge")
+                            Icon(Icons.Default.Merge, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Merge")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -183,8 +147,7 @@ fun HomeScreen(
                         isSelecting = isSelecting,
                         onClick = {
                             if (isSelecting) {
-                                selectedForMerge = if (isSelected)
-                                    selectedForMerge - file else selectedForMerge + file
+                                selectedForMerge = if (isSelected) selectedForMerge - file else selectedForMerge + file
                             } else {
                                 selectedFile = file
                             }
@@ -224,16 +187,6 @@ fun HomeScreen(
             onDelete = { viewModel.deleteFile(file); selectedFile = null }
         )
     }
-
-    errorMsg?.let { msg ->
-        AlertDialog(
-            onDismissRequest = { errorMsg = null },
-            icon = { Icon(Icons.Default.Error, null) },
-            title = { Text("Error") },
-            text = { Text(msg) },
-            confirmButton = { TextButton(onClick = { errorMsg = null }) { Text("OK") } }
-        )
-    }
 }
 
 @Composable
@@ -245,7 +198,7 @@ private fun EmptyState(modifier: Modifier, onScan: () -> Unit, onImport: () -> U
             modifier = Modifier.padding(32.dp)
         ) {
             Icon(Icons.Outlined.FolderOpen, null, modifier = Modifier.size(80.dp),
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
             Text("No scans yet", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Text("Scan or import a document", style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(0.55f))
@@ -293,35 +246,56 @@ private fun PdfCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp)
     ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(modifier = Modifier.size(56.dp, 72.dp).clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
-                if (isSelected) {
-                    Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp))
-                } else if (thumbnail != null) {
-                    Image(thumbnail.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                } else {
-                    Icon(Icons.Default.PictureAsPdf, null, tint = MaterialTheme.colorScheme.primary.copy(0.5f),
-                        modifier = Modifier.size(28.dp))
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Thumbnail
+            Box(
+                modifier = Modifier
+                    .size(52.dp, 68.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                when {
+                    isSelected -> Icon(Icons.Default.CheckCircle, null,
+                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                    thumbnail != null -> Image(thumbnail.asImageBitmap(), null,
+                        Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    else -> Icon(Icons.Default.PictureAsPdf, null,
+                        tint = MaterialTheme.colorScheme.primary.copy(0.45f), modifier = Modifier.size(28.dp))
                 }
             }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(file.nameWithoutExtension, style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(buildString {
-                    if (info.pageCount > 0) append("${info.pageCount} page${if (info.pageCount != 1) "s" else ""}  ·  ")
-                    append(info.sizeStr)
-                }, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(0.55f))
-                Text(fmt.format(Date(file.lastModified())), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(0.4f))
+
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    file.nameWithoutExtension,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    buildString {
+                        if (info.pageCount > 0) append("${info.pageCount}p  ·  ")
+                        append(info.sizeStr)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(0.55f)
+                )
+                Text(
+                    fmt.format(Date(file.lastModified())),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(0.38f)
+                )
             }
+
             if (!isSelecting) {
                 Column {
                     IconButton(onClick = onOpen, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.OpenInNew, null, Modifier.size(18.dp))
+                        Icon(Icons.AutoMirrored.Filled.OpenInNew, null, Modifier.size(18.dp))
                     }
                     IconButton(onClick = onShare, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Default.Share, null, Modifier.size(18.dp))
@@ -350,36 +324,64 @@ private fun PdfActionSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.padding(bottom = 32.dp)) {
-            Row(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Icon(Icons.Default.PictureAsPdf, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+            // Header
+            Row(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.PictureAsPdf, null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(24.dp))
+                }
                 Column {
                     Text(file.nameWithoutExtension, style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(buildString {
-                        if (info.pageCount > 0) append("${info.pageCount} pages  ·  ")
-                        append(info.sizeStr)
-                        append("  ·  ")
-                        append(fmt.format(Date(file.lastModified())))
-                    }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(0.55f))
+                    Text(
+                        buildString {
+                            if (info.pageCount > 0) append("${info.pageCount} pages  ·  ")
+                            append(info.sizeStr)
+                            append("  ·  ")
+                            append(fmt.format(Date(file.lastModified())))
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(0.55f)
+                    )
                 }
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            SheetAction(Icons.Default.OpenInNew, "Open", onClick = onOpen)
+            HorizontalDivider()
+            SheetAction(Icons.AutoMirrored.Filled.OpenInNew, "Open", onClick = onOpen)
             SheetAction(Icons.Default.Share, "Share", onClick = onShare)
             SheetAction(Icons.Default.Edit, "Rename", onClick = { showRename = true })
-            SheetAction(Icons.Default.Delete, "Delete", onClick = { showDelete = true }, tint = MaterialTheme.colorScheme.error)
+            SheetAction(Icons.Default.Delete, "Delete",
+                onClick = { showDelete = true },
+                tint = MaterialTheme.colorScheme.error)
         }
     }
 
-    if (showRename) RenameDialog(file.nameWithoutExtension, onConfirm = { onRename(it); showRename = false }, onDismiss = { showRename = false })
+    if (showRename) RenameDialog(
+        file.nameWithoutExtension,
+        onConfirm = { onRename(it); showRename = false },
+        onDismiss = { showRename = false }
+    )
     if (showDelete) AlertDialog(
         onDismissRequest = { showDelete = false },
         icon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
         title = { Text("Delete scan?") },
         text = { Text("\"${file.nameWithoutExtension}\" will be permanently deleted.") },
-        confirmButton = { TextButton(onClick = { onDelete(); showDelete = false },
-            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Delete") } },
+        confirmButton = {
+            TextButton(
+                onClick = { onDelete(); showDelete = false },
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) { Text("Delete") }
+        },
         dismissButton = { TextButton(onClick = { showDelete = false }) { Text("Cancel") } }
     )
 }
@@ -392,8 +394,11 @@ private fun SheetAction(
     tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface
 ) {
     Surface(onClick = onClick, color = androidx.compose.ui.graphics.Color.Transparent) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
             Text(label, style = MaterialTheme.typography.bodyLarge, color = tint)
         }
@@ -411,7 +416,9 @@ fun RenameDialog(currentName: String, onConfirm: (String) -> Unit, onDismiss: ()
             OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true,
                 label = { Text("Document name") }, modifier = Modifier.fillMaxWidth())
         },
-        confirmButton = { TextButton(onClick = { if (name.isNotBlank()) onConfirm(name) }, enabled = name.isNotBlank()) { Text("Rename") } },
+        confirmButton = {
+            TextButton(onClick = { if (name.isNotBlank()) onConfirm(name) }, enabled = name.isNotBlank()) { Text("Rename") }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
@@ -445,7 +452,11 @@ fun rememberPdfThumbnail(file: File): Bitmap? {
                 PdfRenderer(fd).use { renderer ->
                     val page = renderer.openPage(0)
                     val scale = 180f / page.width
-                    val bmp = Bitmap.createBitmap((page.width * scale).toInt(), (page.height * scale).toInt(), Bitmap.Config.ARGB_8888)
+                    val bmp = Bitmap.createBitmap(
+                        (page.width * scale).toInt(),
+                        (page.height * scale).toInt(),
+                        Bitmap.Config.ARGB_8888
+                    )
                     android.graphics.Canvas(bmp).drawColor(android.graphics.Color.WHITE)
                     page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                     page.close()
@@ -465,10 +476,19 @@ fun formatSize(bytes: Long): String = when {
 
 fun openPdf(context: Context, file: File) {
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "application/pdf"); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }) }
+    runCatching {
+        context.startActivity(Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/pdf")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        })
+    }
 }
 
 fun sharePdf(context: Context, file: File) {
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "application/pdf"; putExtra(Intent.EXTRA_STREAM, uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, "Share PDF"))
+    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+        type = "application/pdf"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }, "Share PDF"))
 }

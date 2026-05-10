@@ -7,7 +7,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -235,6 +237,7 @@ private fun ProgressView(step: String, progress: Float) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DoneView(
     file: File,
@@ -271,13 +274,13 @@ private fun DoneView(
         // Primary
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             FilledTonalButton(onClick = onShare) { Icon(Icons.Default.Share, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Share") }
-            Button(onClick = onOpen) { Icon(Icons.Default.OpenInNew, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Open") }
+            Button(onClick = onOpen) { Icon(Icons.AutoMirrored.Filled.OpenInNew, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Open") }
         }
 
         // Export options
         HorizontalDivider(modifier = Modifier.fillMaxWidth())
         Text("Export", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(0.5f))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onExportJpeg) { Icon(Icons.Default.Image, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("JPEG") }
             OutlinedButton(onClick = onExportWord) { Icon(Icons.Default.Description, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Word") }
             OutlinedButton(onClick = onExportExcel) { Icon(Icons.Default.TableChart, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Excel") }
@@ -286,7 +289,7 @@ private fun DoneView(
         // Tools
         HorizontalDivider(modifier = Modifier.fillMaxWidth())
         Text("Tools", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(0.5f))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onPasswordProtect) { Icon(Icons.Default.Lock, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Protect") }
             OutlinedButton(onClick = onCompress) { Icon(Icons.Default.Compress, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Compress") }
             if (paperlessConfigured) {

@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -70,8 +71,10 @@ fun PreviewScreen(
         },
         bottomBar = {
             Column {
-                FilterBar(selected = colorFilter, onSelect = { viewModel.setColorFilter(it) })
-                PaperSizeBar(selected = paperSize, onSelect = { viewModel.setPaperSize(it) })
+                OptionBar(
+                    colorFilter = colorFilter, onFilterSelect = { viewModel.setColorFilter(it) },
+                    paperSize = paperSize, onSizeSelect = { viewModel.setPaperSize(it) }
+                )
                 Surface(shadowElevation = 4.dp) {
                     Button(
                         onClick = onProcess,
@@ -137,39 +140,35 @@ fun PreviewScreen(
     }
 }
 
-// ── filter bars ───────────────────────────────────────────────────────────────
+// ── option bar (color filter + paper size, single scrollable row) ──────────────
 
 @Composable
-private fun FilterBar(selected: DocColorFilter, onSelect: (DocColorFilter) -> Unit) {
+private fun OptionBar(
+    colorFilter: DocColorFilter, onFilterSelect: (DocColorFilter) -> Unit,
+    paperSize: PaperSize, onSizeSelect: (PaperSize) -> Unit
+) {
     Surface(tonalElevation = 2.dp) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            DocColorFilter.entries.forEach { filter ->
-                FilterChip(
-                    selected = selected == filter,
-                    onClick = { onSelect(filter) },
-                    label = { Text(filter.label, style = MaterialTheme.typography.labelMedium) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PaperSizeBar(selected: PaperSize, onSelect: (PaperSize) -> Unit) {
-    Surface(tonalElevation = 1.dp) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            DocColorFilter.entries.forEach { filter ->
+                FilterChip(
+                    selected = colorFilter == filter,
+                    onClick = { onFilterSelect(filter) },
+                    label = { Text(filter.label, style = MaterialTheme.typography.labelMedium) }
+                )
+            }
+            VerticalDivider(modifier = Modifier.height(28.dp).padding(horizontal = 2.dp))
             Text("Size:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(0.5f))
             PaperSize.entries.forEach { size ->
                 FilterChip(
-                    selected = selected == size,
-                    onClick = { onSelect(size) },
+                    selected = paperSize == size,
+                    onClick = { onSizeSelect(size) },
                     label = { Text(size.label, style = MaterialTheme.typography.labelMedium) }
                 )
             }
